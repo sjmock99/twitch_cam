@@ -21,6 +21,7 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   twitch_cam/servo_controller.py
   twitch_cam/twitch_bot.py
+  twitch_cam/twitch_bot_stream.py
   DESTINATION lib/${PROJECT_NAME}
 )
 ament_package()
