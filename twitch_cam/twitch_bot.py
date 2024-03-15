@@ -4,59 +4,92 @@ import threading
 from rclpy.node import Node
 from std_msgs.msg import Float32
 from twitch_cam_msgs.srv import ServoMotion
+from twitch_cam_msgs.msg import ServoPos
 from twitchio.ext import commands
 import threading
 from example_interfaces.msg import Int64
-
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
+import time
+import asyncio
 
 # Shared Variable 
-servo1_pos = 0
-servo2_pos = 0
+servo1_pos = 90 # Starting Position
+servo2_pos = 90 # Starting Position
+servo_num = 0
 motion_ready = False
 mutex = threading.Lock()
 
+client_cb_group = MutuallyExclusiveCallbackGroup() # Different callback groups such that a service within a service is not blocking the execution of the callback - not 100% sure why this is acting this way to be honest.
+timer_cb_group = MutuallyExclusiveCallbackGroup()
 
 # INSERT TWITCH PARSING... ETC...
 
 class TwitchBot(Node):
     def __init__(self):
         super().__init__("twitch_bot")
-        self.client = self.create_client(ServoMotion, '/servo_motion')  # Service client
+        self.client = self.create_client(ServoMotion, '/servo_motion', callback_group=client_cb_group)  # Service client
         print("ROS2 node launched")
-        self.number_timer_ = self.create_timer(1.0, self.ctrl_loop_callback)
-
+        self.number_timer_ = self.create_timer(5.0, self.ctrl_loop_callback, callback_group=timer_cb_group)
+        self.servo_pos_publisher_ = self.create_publisher(ServoPos, '/servo_position', 10)
 
     def ctrl_loop_callback(self):
-        print("CONTROL LOOP ...")
-        global motion_ready
-        global servo1_pos
-        global servo2_pos
+        while True: # Weird way of keeping everything in the same loop / thread without needing to rely on a control loop callback
+            # print("CONTROL LOOP ...")
+            global motion_ready
+            global servo_num
+            global servo1_pos
+            global servo2_pos
 
-        with mutex:
-            # print(servo1_pos)
-            # print(servo2_pos)
-            # print(motion_ready)
+                # print(servo1_pos)
+                # print(servo2_pos)
+                # print(motion_ready)
             if motion_ready == True:
-                print("MOTION BEGIN!")
-                servo1_request = ServoMotion.Request()
-                servo1_request.servo_number = 1
-                servo1_request.servo_pos = servo1_pos
-                print("SERVO 1 GO!")
-                response = self.client.call(servo1_pos) # Blocking call
-                print(response.end_pos)
-                print(response.success)
+                    print("MOTION BEGIN!")
 
-                servo2_request = ServoMotion.Request()
-                servo2_request.servo_number = 2
-                servo2_request.servo_pos = servo2_pos
-                print("SERVO2 GO!")
-                response = self.client.call(servo2_pos) # Blocking call
-                print(response.end_pos)
-                print(response.success)
+                    if servo_num == 1:
+                        servo1_request = ServoMotion.Request()
+                        servo1_request.servo_number = 1
+                        servo1_request.servo_pos = servo1_pos
+                        print("SERVO 1 GO!")
+                        future = self.client.call_async(servo1_request)
+                    elif servo_num == 2:
+                        servo2_request = ServoMotion.Request()
+                        servo2_request.servo_number = 2
+                        servo2_request.servo_pos = servo2_pos
+                        print("SERVO2 GO!")
+                        future = self.client.call_async(servo2_request)
 
-                motion_ready = False
+                    while rclpy.ok():
+                        print("PROCESSING!")
+                        if future.done():  # Check if the future is completed
+                            print("Async Call End")
+                            try:
+                                response = future.result()  # Get the response
+                                print(response.end_pos)
+                                print(response.success)
 
+                                if response.success == True:
+                                    if servo_num == 1:
+                                        servo1_pos = response.end_pos # Giving the actual values 
+                                    elif servo_num == 2:
+                                        servo2_pos = response.end_pos # Giving the actual values 
 
+                                servo_pos_msg = ServoPos()
+                                servo_pos_msg.servo1_pos = servo1_pos
+                                servo_pos_msg.servo2_pos = servo2_pos
+                                self.servo_pos_publisher_.publish(servo_pos_msg)
+
+                                with mutex:
+                                    motion_ready = False
+                                break
+
+                            except Exception as e:
+                                self.get_logger().error(f'Service call failed: {e}')
+
+                        self.get_logger().info('Waiting for service response...')
+                        rclpy.spin_once(self, timeout_sec=0.1)  # Allow the node to process callbacks
+            time.sleep(0.1)
 
 class Bot(commands.Bot):
 
@@ -86,7 +119,7 @@ class Bot(commands.Bot):
         await self.handle_commands(message)
 
     @commands.command()
-    async def move_servo(self, ctx: commands.Context, servo1_pos_msg: int, servo2_pos_msg: int):
+    async def move_servo(self, ctx: commands.Context, servo_num_msg: int, servo_pos_msg: int):
         # Here we have a command hello, we can invoke our command with our prefix and command name
         # e.g ?hello
         # We can also give our commands aliases (different names) to invoke with.
@@ -96,23 +129,36 @@ class Bot(commands.Bot):
         
         global servo1_pos
         global servo2_pos
+        global servo_num
         global motion_ready
 
-        print(servo1_pos_msg)
-        print(servo2_pos_msg)
+        # print(servo_num_msg)
+        # print(servo_pos_msg)
 
-        if motion_ready == False: # OKAY TO READ A MUTEX LOCKED VARIABLE
-            with mutex:
-                servo1_pos = servo1_pos_msg
-                servo2_pos = servo2_pos_msg
-                motion_ready = True
-                print("TWITCH MSG PARSED... READY FOR CONTROL LOOP!")
-        
+        if servo_num == 1 or servo_num == 2:
+            if motion_ready == False: # OKAY TO READ A MUTEX LOCKED VARIABLE
+                with mutex:
+                    servo_num = servo_num_msg
+                    if servo_num == 1:
+                        servo1_pos = servo_pos_msg
+                    elif servo_num == 2:
+                        servo2_pos = servo_pos_msg 
+                    motion_ready = True
+                    print("TWITCH MSG PARSED... READY FOR CONTROL LOOP!")
+                    await ctx.send(f'Robot is in motion! Moving Servo {servo_num_msg} to {servo_pos_msg} degrees!')
 
-        # await ctx.send(f'Hello {ctx.author.name}!')
+                # Attempt at a blocking call while it is mutex locked from the other thread...
+                while motion_ready == True:
+                    print("WAITING!")
+                    await asyncio.sleep(0.1) # By doing await asyncio.sleep, it frees the event loop such that the other asynchronous functions (that might be incorrect) can complete, so that commands are not in a queue.
+                await ctx.send(f'Robot Motion is complete.')
 
 def spin_ros_node(node):
     rclpy.spin(node)
+    # executor = MultiThreadedExecutor()
+    # executor.add_node(node)
+    # executor.spin() 
+
 #     async def event_command_error(self, context: commands.Context, error: Exception):
 
 #         if isinstance(error, commands.ArgumentParsingFailed):
@@ -121,14 +167,12 @@ def spin_ros_node(node):
 #             print(error)
 
 
-
 def main(args=None):
     rclpy.init(args=args)
     node = TwitchBot()
     twitch_bot = Bot()
 
     # # Start the ROS2 node in the main thread
-    
     twitch_bot_thread = threading.Thread(target=twitch_bot.run)
     ros_thread = threading.Thread(target=spin_ros_node, args=(node, ))
 
