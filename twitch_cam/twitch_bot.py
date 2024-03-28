@@ -35,7 +35,7 @@ class TwitchBot(Node):
 
     def ctrl_loop_callback(self):
         while True: # Weird way of keeping everything in the same loop / thread without needing to rely on a control loop callback
-           # print("CONTROL LOOP ...")
+            # print("CONTROL LOOP ...")
             global motion_ready
             global servo_num
             global servo1_pos
@@ -118,6 +118,15 @@ class Bot(commands.Bot):
         # We must let the bot know we want to handle and invoke our commands...
         await self.handle_commands(message)
 
+
+    @commands.command()
+    async def help(self, ctx: commands.Context):
+    # Here we have a command hello, we can invoke our command with our prefix and command name
+    # e.g ?hello
+    # We can also give our commands aliases (different names) to invoke with.
+        await ctx.send(f'Use the command "!move_servo <servo_num> <servo_pos>" where <servo_num> = 1 dictates left to right movement, and <servo_num> = 2 dictates up and down movement. <servo_pos> is a number in degrees between [-90, 90].')
+
+
     @commands.command()
     async def move_servo(self, ctx: commands.Context, servo_num_msg: int, servo_pos_msg: int):
         # Here we have a command hello, we can invoke our command with our prefix and command name
@@ -132,30 +141,30 @@ class Bot(commands.Bot):
         global servo_num
         global motion_ready
 
-       # print(servo_num_msg)
-       # print(servo_pos_msg)
 
-        if servo_num_msg == 1 or servo_num_msg == 2:
+        # print(servo_num_msg)
+        # print(servo_pos_msg)
 
-            print("MODIFYING MOTION READY?")
-            print(motion_ready)
+        if servo_pos_msg > 90 or servo_pos_msg < -90:
+            await ctx.send(f'Please keep the command within the range of [-90, 90] degrees.')
+        else: 
+            if servo_num_msg == 1 or servo_num_msg == 2:
+                if motion_ready == False: # OKAY TO READ A MUTEX LOCKED VARIABLE
+                    with mutex:
+                        servo_num = servo_num_msg
+                        if servo_num == 1:
+                            servo1_pos = servo_pos_msg
+                        elif servo_num == 2:
+                            servo2_pos = servo_pos_msg 
+                        motion_ready = True
+                        print("TWITCH MSG PARSED... READY FOR CONTROL LOOP!")
+                        await ctx.send(f'Robot is in motion! Moving Servo {servo_num_msg} to {servo_pos_msg} degrees!')
 
-            if motion_ready == False: # OKAY TO READ A MUTEX LOCKED VARIABLE
-                with mutex:
-                    servo_num = servo_num_msg
-                    if servo_num == 1:
-                        servo1_pos = servo_pos_msg
-                    elif servo_num == 2:
-                        servo2_pos = servo_pos_msg 
-                    motion_ready = True
-                    print("TWITCH MSG PARSED... READY FOR CONTROL LOOP!")
-                    await ctx.send(f'Robot is in motion! Moving Servo {servo_num_msg} to {servo_pos_msg} degrees!')
-
-                # Attempt at a blocking call while it is mutex locked from the other thread...
-                while motion_ready == True:
-                    print("WAITING!")
-                    await asyncio.sleep(0.1) # By doing await asyncio.sleep, it frees the event loop such that the other asynchronous functions (that might be incorrect) can complete, so that commands are not in a queue.
-                await ctx.send(f'Robot Motion is complete.')
+                    # Attempt at a blocking call while it is mutex locked from the other thread...
+                    while motion_ready == True:
+                        print("WAITING!")
+                        await asyncio.sleep(0.1) # By doing await asyncio.sleep, it frees the event loop such that the other asynchronous functions (that might be incorrect) can complete, so that commands are not in a queue.
+                    await ctx.send(f'Robot Motion is complete.')
 
 def spin_ros_node(node):
     rclpy.spin(node)
