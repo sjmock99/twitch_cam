@@ -35,7 +35,7 @@ class TwitchBot(Node):
 
     def ctrl_loop_callback(self):
         while True: # Weird way of keeping everything in the same loop / thread without needing to rely on a control loop callback
-            # print("CONTROL LOOP ...")
+           # print("CONTROL LOOP ...")
             global motion_ready
             global servo_num
             global servo1_pos
@@ -132,10 +132,14 @@ class Bot(commands.Bot):
         global servo_num
         global motion_ready
 
-        # print(servo_num_msg)
-        # print(servo_pos_msg)
+       # print(servo_num_msg)
+       # print(servo_pos_msg)
 
-        if servo_num == 1 or servo_num == 2:
+        if servo_num_msg == 1 or servo_num_msg == 2:
+
+            print("MODIFYING MOTION READY?")
+            print(motion_ready)
+
             if motion_ready == False: # OKAY TO READ A MUTEX LOCKED VARIABLE
                 with mutex:
                     servo_num = servo_num_msg
