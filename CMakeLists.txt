@@ -22,6 +22,7 @@ install(PROGRAMS
   twitch_cam/servo_controller.py
   twitch_cam/twitch_bot.py
   twitch_cam/twitch_bot_stream.py
+  twitch_cam/open_cv_test.py
   DESTINATION lib/${PROJECT_NAME}
 )
 ament_package()

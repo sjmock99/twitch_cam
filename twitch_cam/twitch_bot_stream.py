@@ -7,6 +7,7 @@ from twitch_cam_msgs.msg import ServoPos
 from cv_bridge import CvBridge
 import cv2 as cv
 import ffmpeg
+import os
 
 # Initialize the CvBridge
 bridge = CvBridge()
@@ -38,6 +39,38 @@ class TwitchBotStream(Node):
             cv_image = bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="bgr8")  # Adjust the encoding type as per your image format
             cv_image = cv.rotate(cv_image, cv.ROTATE_180)
 
+            current_dir = os.getcwd()
+            image_path = os.path.join(current_dir, 'src/twitch_cam/twitch_cam/axis.png')
+            # Scale the image to be significantly smaller
+            axis_img = cv.imread(image_path)
+
+            # Define the scaling factors
+            scale_x = 0.25  # Scale factor for width
+            scale_y = 0.25    # Scale factor for height
+
+            # Calculate the new dimensions
+            new_width = int(axis_img.shape[1] * scale_x)
+            new_height = int(axis_img.shape[0] * scale_y)
+
+            # Resize the smaller image
+            axis_img = cv.resize(axis_img, (new_width, new_height))
+
+            # # Determine the dimensions of the smaller image
+            smaller_height, smaller_width, _ = axis_img.shape
+
+            # # Determine the dimensions of the larger image
+            # larger_height, larger_width, _ = cv_image.shape
+
+            # Print out the dimensions and ratio
+            # print("Dimensions of the smaller image:", smaller_width, "x", smaller_height)
+            # print("Dimensions of the larger image:", larger_width, "x", larger_height)
+
+            top_right_y = 0
+            top_right_x = cv_image.shape[1] - smaller_width
+
+            # Update the larger image with the smaller image in the region of interest
+            cv_image[top_right_y:top_right_y + smaller_height, top_right_x:top_right_x + smaller_width] = axis_img
+
             # font 
             font = cv.FONT_HERSHEY_SIMPLEX 
             
@@ -45,13 +78,13 @@ class TwitchBotStream(Node):
             org1 = (50, 50) 
             org2 = (50, 75)
             # fontScale 
-            fontScale = 0.5
+            fontScale = 0.75
             
             # Blue color in BGR 
             color = (255, 0, 0) 
             
             # Line thickness of 1 px 
-            thickness = 1
+            thickness = 2
 
             msg1 = 'Servo 1 Pos: ' + str(self.servo1_pos) + " deg"
             msg2 = 'Servo 2 Pos: ' + str(self.servo2_pos) + " deg"
@@ -60,11 +93,9 @@ class TwitchBotStream(Node):
             cv_image = cv.putText(cv_image, msg2, org2, font,  
                    fontScale, color, thickness, cv.LINE_AA) 
 
-
             # # # Display the image (livestream locally)
             # cv.imshow("Livestream", cv_image)
             # cv.waitKey(1)  # Wait for a short duration to display the next frame (adjust as needed)
-
 
             # Convert the OpenCV image to bytes
             _, img_encoded = cv.imencode('.jpg', cv_image)
@@ -80,7 +111,7 @@ class TwitchBotStream(Node):
                     # .input('pipe:', format='rawvideo', pix_fmt='bgr8', s=f'{cv_image.shape[1]}x{cv_image.shape[0]}')
                     # .input('pipe:', format='mjpeg', pix_fmt='bgr8', s=f'{cv_image.shape[1]}x{cv_image.shape[0]}')
                     .input('pipe:', format='image2pipe', framerate='30', vcodec='mjpeg', pix_fmt='bgr8') 
-                    .output(stream_url, format='flv', vcodec='libx264', pix_fmt='yuv420p', preset='ultrafast', tune='zerolatency', b='3M', g='30', crf='20')
+                    .output(stream_url, format='flv', vcodec='libx264', pix_fmt='yuv420p', preset='ultrafast', tune='zerolatency', b='3M', g='30', crf='18')
                     .overwrite_output()
                     .run_async(pipe_stdin=True)
                 )
