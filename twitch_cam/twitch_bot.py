@@ -14,8 +14,8 @@ import time
 import asyncio
 
 # Shared Variable 
-servo1_pos = 90 # Starting Position
-servo2_pos = 90 # Starting Position
+servo1_pos = 0 # Starting Position (in camera frame)
+servo2_pos = 0 # Starting Position (in camera frame)
 servo_num = 0
 motion_ready = False
 mutex = threading.Lock()
