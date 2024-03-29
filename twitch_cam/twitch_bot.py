@@ -50,13 +50,19 @@ class TwitchBot(Node):
                     if servo_num == 1:
                         servo1_request = ServoMotion.Request()
                         servo1_request.servo_number = 1
+                        
+                        # In the current paradigm of the servo, [Servo 1 Position = 0 --> to the right [90], 180 --> to the left] (in camera orientation)
+                        # Add 
                         servo1_request.servo_pos = servo1_pos
+
                         print("SERVO 1 GO!")
                         future = self.client.call_async(servo1_request)
                     elif servo_num == 2:
                         servo2_request = ServoMotion.Request()
                         servo2_request.servo_number = 2
                         servo2_request.servo_pos = servo2_pos
+
+                        # In the current paradigm... Servo 1 Position = 0 --> Up [90], Servo 1 Position = 180 --> Down [-90]
                         print("SERVO2 GO!")
                         future = self.client.call_async(servo2_request)
 

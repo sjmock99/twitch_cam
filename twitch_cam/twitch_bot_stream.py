@@ -22,8 +22,8 @@ class TwitchBotStream(Node):
         self.servo_pos_sub_ = self.create_subscription(ServoPos, "/servo_position", self.position_callback, 10)
         self.get_logger().info("CV Test has been started.")
         self.ffmpeg_process = None
-        self.servo1_pos = 90
-        self.servo2_pos = 90
+        self.servo1_pos = 0 # Starts at origin
+        self.servo2_pos = 0 # Starts at origin
 
     # Define a callback in order to get information about the position of the servo --> put it in the image_callback
     def position_callback(self, msg):
@@ -45,8 +45,8 @@ class TwitchBotStream(Node):
             axis_img = cv.imread(image_path)
 
             # Define the scaling factors
-            scale_x = 0.25  # Scale factor for width
-            scale_y = 0.25    # Scale factor for height
+            scale_x = 0.30  # Scale factor for width
+            scale_y = 0.30  # Scale factor for height
 
             # Calculate the new dimensions
             new_width = int(axis_img.shape[1] * scale_x)
@@ -111,7 +111,7 @@ class TwitchBotStream(Node):
                     # .input('pipe:', format='rawvideo', pix_fmt='bgr8', s=f'{cv_image.shape[1]}x{cv_image.shape[0]}')
                     # .input('pipe:', format='mjpeg', pix_fmt='bgr8', s=f'{cv_image.shape[1]}x{cv_image.shape[0]}')
                     .input('pipe:', format='image2pipe', framerate='30', vcodec='mjpeg', pix_fmt='bgr8') 
-                    .output(stream_url, format='flv', vcodec='libx264', pix_fmt='yuv420p', preset='ultrafast', tune='zerolatency', b='3M', g='30', crf='18')
+                    .output(stream_url, format='flv', vcodec='libx264', pix_fmt='yuv420p', preset='ultrafast', tune='zerolatency', b='3M', g='30', crf='20')
                     .overwrite_output()
                     .run_async(pipe_stdin=True)
                 )
