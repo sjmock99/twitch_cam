@@ -3,7 +3,7 @@
 <package format="3">
   <name>twitch_cam</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Twitch-chat-controlled pan/tilt camera: chat bot, servo service client and stream node</description>
   <maintainer email="sjmock99@gmail.com">sjmock</maintainer>
   <license>TODO: License declaration</license>
 

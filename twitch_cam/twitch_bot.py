@@ -12,6 +12,15 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallb
 from rclpy.executors import MultiThreadedExecutor
 import time
 import asyncio
+import os
+
+# Credentials come from the environment, never the code:
+#   export TWITCH_TOKEN=oauth:...               (the chat bot account's OAuth token)
+#   export TWITCH_CHANNEL=prettygoodengineer    (the channel whose chat it reads)
+TWITCH_TOKEN = os.environ.get("TWITCH_TOKEN")
+TWITCH_CHANNEL = os.environ.get("TWITCH_CHANNEL", "prettygoodengineer")
+if not TWITCH_TOKEN:
+    raise SystemExit("Set TWITCH_TOKEN to the chat bot's OAuth token")
 
 # Shared Variable 
 servo1_pos = 0 # Starting Position (in camera frame)
@@ -103,7 +112,7 @@ class Bot(commands.Bot):
         # Initialise our Bot with our access token, prefix and a list of channels to join on boot...
         # prefix can be a callable, which returns a list of strings or a string...
         # initial_channels can also be a callable which returns a list of strings...
-        super().__init__(token='uiqe254kmy0xhszzh5dekk56s19nq9', prefix = '!', initial_channels=['prettygoodengineer'])
+        super().__init__(token=TWITCH_TOKEN, prefix='!', initial_channels=[TWITCH_CHANNEL])
 
     async def event_ready(self):
         # Notify us when everything is ready!

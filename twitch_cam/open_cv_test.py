@@ -12,7 +12,10 @@ import os
 # Initialize the CvBridge
 bridge = CvBridge()
 
-stream_key = "live_1007968364_0nzz0I6YcutaYVIKoUVKWGlYh2nS44"
+# The stream key comes from the environment, never the code: export TWITCH_STREAM_KEY=live_...
+stream_key = os.environ.get("TWITCH_STREAM_KEY")
+if not stream_key:
+    raise SystemExit("Set TWITCH_STREAM_KEY (Twitch dashboard > Settings > Stream > Primary Stream key)")
 stream_url = f"rtmp://jfk.contribute.live-video.net/app/{stream_key}"
 class TwitchBotStream(Node):
     def __init__(self):
