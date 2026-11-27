@@ -50,7 +50,7 @@ cd .. && colcon build && source install/setup.bash
 Credentials are read from the environment, never stored in the code:
 
 ```bash
-export TWITCH_TOKEN=oauth:...            # the chat bot account's OAuth token
+export TWITCH_TOKEN=...                  # the chat bot account's access token, pasted as given
 export TWITCH_CHANNEL=yourchannel        # the channel whose chat the bot reads
 export TWITCH_STREAM_KEY=live_...        # Twitch dashboard > Settings > Stream
 ```
