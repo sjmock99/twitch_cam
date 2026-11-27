@@ -1,4 +1,12 @@
+import os
+
 from twitchio.ext import commands
+
+# Credentials come from the environment, never the code (see twitch_bot.py).
+TWITCH_TOKEN = os.environ.get("TWITCH_TOKEN")
+TWITCH_CHANNEL = os.environ.get("TWITCH_CHANNEL", "prettygoodengineer")
+if not TWITCH_TOKEN:
+    raise SystemExit("Set TWITCH_TOKEN to the chat bot's OAuth token")
 
 class Bot(commands.Bot):
 
@@ -6,7 +14,7 @@ class Bot(commands.Bot):
         # Initialise our Bot with our access token, prefix and a list of channels to join on boot...
         # prefix can be a callable, which returns a list of strings or a string...
         # initial_channels can also be a callable which returns a list of strings...
-        super().__init__(token='***REMOVED***', prefix = '!', initial_channels=['smockodockoiot'])
+        super().__init__(token=TWITCH_TOKEN, prefix='!', initial_channels=[TWITCH_CHANNEL])
 
     async def event_ready(self):
         # Notify us when everything is ready!
