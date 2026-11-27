@@ -4,7 +4,7 @@ from twitchio.ext import commands
 
 # Credentials come from the environment, never the code (see twitch_bot.py).
 TWITCH_TOKEN = os.environ.get("TWITCH_TOKEN")
-TWITCH_CHANNEL = os.environ.get("TWITCH_CHANNEL", "smockodockoiot")
+TWITCH_CHANNEL = os.environ.get("TWITCH_CHANNEL", "prettygoodengineer")
 if not TWITCH_TOKEN:
     raise SystemExit("Set TWITCH_TOKEN to the chat bot's OAuth token")
 
