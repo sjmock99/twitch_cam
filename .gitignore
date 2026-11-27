@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# colcon build output (if the package is built in place)
+build/
+install/
+log/
+
+# Local credentials, if kept in a file
+.env
